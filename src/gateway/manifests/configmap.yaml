@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-configmap
+data:
+  AUTH_SVC_ADDRESS: "auth:5000"
+  MYSQL_HOST: "mysql"            # MySQL service name
+  MYSQL_USER: "auth_user"
+  MYSQL_PASSWORD: "Auth123"
+  MYSQL_DB: "auth"
+  MYSQL_PORT: "3306"
