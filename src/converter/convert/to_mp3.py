@@ -61,7 +61,7 @@ def start(message, fs_videos, fs_mp3s, channel):
                     delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
                 ),
             )
-            logger.info("Published message to queue")
+            logger.info("Message published to RabbitMQ: {message}")
         except Exception as err:
             logger.error("Failed to publish message: {}".format(err))
             fs_mp3s.delete(fid)
