@@ -11,7 +11,8 @@ from storage import util
 from bson.objectid import ObjectId
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Initialize Flask application
@@ -26,6 +27,8 @@ fs_mp3s = gridfs.GridFS(mongo_mp3.db)
 connection = pika.BlockingConnection(pika.ConnectionParameters("rabbitmq"))
 channel = connection.channel()
 
+channel.queue_declare(queue="mp3", durable=False, exclusive=False)
+channel.queue_declare(queue="video", durable=False, exclusive=False)
 @server.route("/login", methods=["POST"])
 def login():
     logger.debug("Login route called")
@@ -37,6 +40,7 @@ def login():
     else:
         logger.error(f"Login failed: {err}")
         return err
+
 
 @server.route("/upload", methods=["POST"])
 def upload():
@@ -74,6 +78,7 @@ def upload():
         logger.warning("Unauthorized access attempt")
         return "not authorized", 401
 
+
 @server.route("/download", methods=["GET"])
 def download():
     logger.debug("Download route called")
@@ -106,6 +111,7 @@ def download():
 
     logger.warning("Unauthorized access attempt")
     return "not authorized", 401
+
 
 if __name__ == "__main__":
     server.run(host="0.0.0.0", port=8080)

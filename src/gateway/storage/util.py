@@ -27,8 +27,8 @@ def upload(f, fs, channel, access):
     }
 
     try:
-        channel.queue_declare(queue="mp3", durable=False, exclusive=False)
-        channel.queue_declare(queue="video", durable=False, exclusive=False)
+        # channel.queue_declare(queue="mp3", durable=False, exclusive=False)
+        # channel.queue_declare(queue="video", durable=False, exclusive=False)
         # Publish the message to the RabbitMQ queue
         channel.basic_publish(
             exchange="",

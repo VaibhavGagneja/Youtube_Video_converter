@@ -12,5 +12,5 @@ data:
     );
     
     -- Insert an initial user (example)
-    INSERT INTO user (email, password) VALUES ('georgio@email.com', 'Admin123');
+    INSERT INTO user (email, password) VALUES ('vaibhavgagneja358@outlook.com', 'Admin123');
     -- Ensure to use hashed passwords in production
