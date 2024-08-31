@@ -1,38 +1,61 @@
-# Scalable Video-to-MP3 Conversion System
+# System Workflow
 
-This project is a scalable video-to-MP3 conversion system built using a microservices architecture and modern cloud-native technologies.
+![Local Image](diagram.svg)
 
-## Architecture
 
-The system is designed with a microservices architecture, allowing for modularity, scalability, and easy maintenance. The key components include:
+## Step 0: Authentication
 
-- **API Gateway**: Handles client requests and routes them to the appropriate services.
-- **Auth Service**: Manages authentication and security for the system.
-- **Video Conversion Service**: Handles the actual video-to-MP3 conversion process.
-- **Email Service**: Sends notifications to clients upon successful conversion.
-- **MongoDB Storage**: Stores converted MP3 files and related metadata.
+1. **User Login**: A user sends a login request to the `gateway` microservice with their credentials (e.g., username, password).
+2. **JWT Creation**: The `gateway` microservice creates a JSON Web Token (JWT) for the user.
+3. **JWT Return**: The `gateway` microservice returns the JWT to the user.
 
-The system is deployed in a **Kubernetes** cluster, which manages containerized services and ensures scalability.
+## Step 1: Gateway
 
-## Technologies
+1. **Incoming Request**: The `gateway` microservice receives an incoming request from a user.
+2. **Request Processing**: The `server.py` file processes the request and handles authentication and authorization.
+3. **SQL Database Query**: The `gateway` microservice queries the SQL database (e.g., PostgreSQL) to retrieve user information and authentication data.
+4. **User Information Retrieval**: The `gateway` microservice retrieves the user information and authentication data from the SQL database.
 
-- **Programming Language**: Python
-- **Web Framework**: Flask
-- **Message Broker**: RabbitMQ
-- **Database**: MongoDB
-- **Video Processing**: FFmpeg for video/audio processing tasks.
+## Step 2: Authentication
 
-## Workflow
+1. **Auth Microservice Call**: The `gateway` microservice calls the `auth` microservice to authenticate the user's credentials.
+2. **Auth Database Query**: The `auth` microservice queries the SQL database (e.g., PostgreSQL) to retrieve authentication data and user information.
+3. **Authentication**: The `auth` microservice authenticates the user's credentials using the retrieved data.
+4. **Token or Response Return**: If authentication is successful, the `auth` microservice returns a token or authentication response to the `gateway` microservice.
 
-1. **Client Request**: A client submits a video conversion request to the API Gateway.
-2. **Authentication**: The API Gateway authenticates the client using the Auth Service.
-3. **Message Queue**: Upon successful authentication, the API Gateway places a conversion request message into a RabbitMQ queue.
-4. **Conversion**: The Video Conversion Service picks up the message, processes the conversion using FFmpeg, and stores the resulting MP3 file in MongoDB.
-5. **Notification**: Once the conversion is complete, the API Gateway sends a notification to the client via the Email Service.
+## Step 3: File Upload
 
-## Key Features
+1. **File Upload Request**: If the user is authenticated, the `gateway` microservice allows the user to upload a file.
+2. **File Upload Processing**: The `gateway` microservice processes the file upload request and sends the uploaded file to the `converter` microservice.
+3. **Converter Microservice Call**: The `converter` microservice receives the uploaded file and processes it.
+4. **MongoDB Database Query**: The `converter` microservice queries the MongoDB database to store metadata about the uploaded files, such as file names, sizes, and formats.
 
-- **Error Handling**: Robust error handling ensures smooth operation even in the event of failures.
-- **Logging and Monitoring**: Comprehensive logging and monitoring are implemented for effective troubleshooting and performance optimization.
-- **Scalability**: The system is designed to scale horizontally with Kubernetes, handling increased loads efficiently.
-- **Security**: Proper security measures are in place for authentication, media file handling, and protection against abuse.
+## Step 4: File Conversion
+
+1. **File Conversion**: The `converter` microservice performs the necessary conversions (e.g., format, size, etc.) on the uploaded file.
+2. **Converted File Storage**: The converted file is stored in the MongoDB database.
+3. **Message Broker Notification**: The `converter` microservice sends a notification to the message broker (e.g., RabbitMQ) to trigger further processing.
+4. **Message Broker Processing**: The message broker processes the notification and triggers the `notification` microservice.
+
+## Step 5: Notification
+
+1. **Notification Microservice Call**: The `notification` microservice is triggered by the message broker to send notifications to the user (e.g., email, SMS, etc.).
+2. **Notification Data Retrieval**: The `notification` microservice retrieves notification data and user preferences from the SQL database (e.g., PostgreSQL).
+3. **Notification Processing**: The `notification` microservice processes the notification data and user preferences.
+4. **Notification Sending**: The `notification` microservice sends the notification to the user.
+
+## Step 6: File Storage
+
+1. **File Storage Location**: The converted file is stored in a designated storage location (e.g., cloud storage, file system, etc.).
+2. **MongoDB Database Query**: The `converter` microservice queries the MongoDB database to store the file storage locations and metadata.
+3. **File Storage Metadata**: The `converter` microservice stores the file storage metadata in the MongoDB database.
+
+## System Components
+
+1. **Gateway Microservice**: Handles incoming requests, authentication, and authorization.
+2. **Auth Microservice**: Authenticates user credentials.
+3. **Converter Microservice**: Converts files and stores metadata.
+4. **Notification Microservice**: Sends notifications to users.
+5. **SQL Database**: Stores user information, authentication data, and notification data.
+6. **MongoDB Database**: Stores file metadata, converted files, and file storage locations.
+7. **Message Broker**: Triggers further processing and notifications.
