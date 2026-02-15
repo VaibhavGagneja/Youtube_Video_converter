@@ -3,7 +3,8 @@ import gridfs
 import pika
 import json
 import logging
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify
+from prometheus_flask_exporter import PrometheusMetrics
 from flask_pymongo import PyMongo
 from auth import validate
 from auth_svc import access
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask application
 server = Flask(__name__)
+metrics = PrometheusMetrics(server)
 
 # Initialize MongoDB and RabbitMQ
 mongo_video = PyMongo(server, uri="mongodb://mongodb:27017/videos")
@@ -29,6 +31,34 @@ channel = connection.channel()
 
 channel.queue_declare(queue="mp3", durable=False, exclusive=False)
 channel.queue_declare(queue="video", durable=False, exclusive=False)
+
+
+@server.route("/health", methods=["GET"])
+def health():
+    """Health check endpoint for K8s liveness/readiness probes."""
+    health_status = {"status": "healthy", "service": "gateway", "checks": {}}
+    # Check MongoDB
+    try:
+        mongo_video.db.command("ping")
+        health_status["checks"]["mongodb"] = "connected"
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["checks"]["mongodb"] = str(e)
+    # Check RabbitMQ — use a fresh probe connection (global conn goes stale)
+    try:
+        probe = pika.BlockingConnection(
+            pika.ConnectionParameters("rabbitmq", connection_attempts=1, retry_delay=0, socket_timeout=2)
+        )
+        probe.close()
+        health_status["checks"]["rabbitmq"] = "connected"
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["checks"]["rabbitmq"] = str(e)
+
+    status_code = 200 if health_status["status"] == "healthy" else 503
+    return jsonify(health_status), status_code
+
+
 @server.route("/login", methods=["POST"])
 def login():
     logger.debug("Login route called")

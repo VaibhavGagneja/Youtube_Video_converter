@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: converter
+  labels:
+    app: converter
+    {{- include "video-converter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.converter.replicas }}
+  selector:
+    matchLabels:
+      app: converter
+  template:
+    metadata:
+      labels:
+        app: converter
+    spec:
+      containers:
+        - name: converter
+          image: {{ include "video-converter.image" (dict "global" .Values.global "image" .Values.converter.image) }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.converter.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.converter.resources | nindent 12 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification
+  labels:
+    app: notification
+    {{- include "video-converter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.notification.replicas }}
+  selector:
+    matchLabels:
+      app: notification
+  template:
+    metadata:
+      labels:
+        app: notification
+    spec:
+      containers:
+        - name: notification
+          image: {{ include "video-converter.image" (dict "global" .Values.global "image" .Values.notification.image) }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.notification.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: notification-secret
+          resources:
+            {{- toYaml .Values.notification.resources | nindent 12 }}

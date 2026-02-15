@@ -39,7 +39,7 @@ MANIFEST
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
-
+*.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -133,3 +133,29 @@ dmypy.json
 
 #Audio
 *.mp3
+*.mp4
+
+# Virtual environments (committed by mistake)
+authenv/
+
+# Docker
+docker-compose.override.yml
+
+# Helm
+helm/video-converter/charts/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfvars
+terraform/.terraform.lock.hcl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db

@@ -17,3 +17,4 @@ pylint==3.2.6
 toml==0.10.2
 Werkzeug==3.0.4
 wrapt==1.16.0
+prometheus_flask_exporter

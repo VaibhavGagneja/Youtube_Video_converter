@@ -27,10 +27,15 @@ def upload(f, fs, channel, access):
     }
 
     try:
-        # channel.queue_declare(queue="mp3", durable=False, exclusive=False)
-        # channel.queue_declare(queue="video", durable=False, exclusive=False)
-        # Publish the message to the RabbitMQ queue
-        channel.basic_publish(
+        # Create a fresh connection per publish (BlockingConnection is not
+        # thread-safe and goes stale in Flask's request handling)
+        connection = pika.BlockingConnection(
+            pika.ConnectionParameters("rabbitmq")
+        )
+        ch = connection.channel()
+        ch.queue_declare(queue="video", durable=False, exclusive=False)
+
+        ch.basic_publish(
             exchange="",
             routing_key="video",
             body=json.dumps(message),
@@ -39,6 +44,7 @@ def upload(f, fs, channel, access):
             ),
         )
         logger.info(f"Message published to RabbitMQ: {message}")
+        connection.close()
 
     except Exception as err:
         logger.error(f"Error publishing message to RabbitMQ: {err}")
@@ -53,3 +59,4 @@ def upload(f, fs, channel, access):
         return "internal server error", 500
 
     return "success", 200
+

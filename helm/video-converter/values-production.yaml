@@ -1,0 +1,38 @@
+# Production environment overrides
+global:
+  image:
+    pullPolicy: Always
+
+gateway:
+  replicas: 3
+  ingress:
+    host: mp3converter.com
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilization: 65
+
+converter:
+  replicas: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilization: 55
+  resources:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+mysql:
+  storage: 50Gi
+
+mongodb:
+  storage: 100Gi
+
+rabbitmq:
+  storage: 20Gi

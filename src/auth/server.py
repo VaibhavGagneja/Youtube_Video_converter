@@ -1,8 +1,10 @@
 import jwt, datetime, os
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
+from prometheus_flask_exporter import PrometheusMetrics
 
 server = Flask(__name__)
+metrics = PrometheusMetrics(server)
 mysql = MySQL(server)
 os.environ["MYSQL_PORT"] = "3306"
 
@@ -12,7 +14,23 @@ server.config["MYSQL_USER"] = os.environ.get("MYSQL_USER")
 server.config["MYSQL_PASSWORD"] = os.environ.get("MYSQL_PASSWORD")
 server.config["MYSQL_DB"] = os.environ.get("MYSQL_DB")
 server.config["MYSQL_PORT"] = int(os.environ.get("MYSQL_PORT"))
-print(server.config["MYSQL_USER"])
+
+
+@server.route("/health", methods=["GET"])
+def health():
+    """Health check endpoint for K8s liveness/readiness probes."""
+    health_status = {"status": "healthy", "service": "auth", "checks": {}}
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT 1")
+        cur.close()
+        health_status["checks"]["mysql"] = "connected"
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["checks"]["mysql"] = str(e)
+        return jsonify(health_status), 503
+    return jsonify(health_status), 200
+
 
 @server.route("/login", methods=["POST"])
 def login():

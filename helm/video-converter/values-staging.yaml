@@ -1,0 +1,52 @@
+# Staging environment overrides
+global:
+  image:
+    tag: latest
+
+auth:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 150m
+      memory: 128Mi
+
+gateway:
+  replicas: 1
+  ingress:
+    host: staging.mp3converter.com
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+converter:
+  replicas: 1
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+notification:
+  replicas: 1
+
+mysql:
+  storage: 5Gi
+
+mongodb:
+  storage: 5Gi
+
+rabbitmq:
+  storage: 2Gi

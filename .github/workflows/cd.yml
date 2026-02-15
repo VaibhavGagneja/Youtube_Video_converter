@@ -1,0 +1,114 @@
+name: CD — Deploy to Kubernetes
+
+on:
+  workflow_run:
+    workflows: ["CI — Lint, Test & Build"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  HELM_CHART_PATH: helm/video-converter
+  NAMESPACE_STAGING: video-converter-staging
+  NAMESPACE_PRODUCTION: video-converter-production
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.mp3converter.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.14.0
+
+      - name: Configure kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG_STAGING }}
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install video-converter ${{ env.HELM_CHART_PATH }} \
+            --namespace ${{ env.NAMESPACE_STAGING }} \
+            --create-namespace \
+            --values ${{ env.HELM_CHART_PATH }}/values-staging.yaml \
+            --set global.image.tag=${{ steps.sha.outputs.short }} \
+            --set global.image.repository=${{ secrets.DOCKER_USERNAME }} \
+            --wait \
+            --timeout 5m
+
+      - name: Verify deployment
+        run: |
+          kubectl -n ${{ env.NAMESPACE_STAGING }} rollout status deployment/gateway --timeout=120s
+          kubectl -n ${{ env.NAMESPACE_STAGING }} rollout status deployment/auth --timeout=120s
+
+      - name: Run smoke tests
+        run: |
+          GATEWAY_URL=$(kubectl -n ${{ env.NAMESPACE_STAGING }} get svc gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          curl -sf "http://${GATEWAY_URL}:8080/health" || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://mp3converter.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.14.0
+
+      - name: Configure kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install video-converter ${{ env.HELM_CHART_PATH }} \
+            --namespace ${{ env.NAMESPACE_PRODUCTION }} \
+            --create-namespace \
+            --values ${{ env.HELM_CHART_PATH }}/values-production.yaml \
+            --set global.image.tag=${{ steps.sha.outputs.short }} \
+            --set global.image.repository=${{ secrets.DOCKER_USERNAME }} \
+            --wait \
+            --timeout 5m
+
+      - name: Verify deployment
+        run: |
+          kubectl -n ${{ env.NAMESPACE_PRODUCTION }} rollout status deployment/gateway --timeout=120s
+          kubectl -n ${{ env.NAMESPACE_PRODUCTION }} rollout status deployment/auth --timeout=120s
